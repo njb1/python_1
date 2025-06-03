@@ -5,7 +5,7 @@ import json
 
 def get_falcon_api_credentials_from_aws():
     """
-    Retrieve Falcon API credentials from AWS Secrets Manager.
+    Retrieve Falcon API credentials from AWS Secrets Manager (making a guess thats whats used).
     Expects a secret named 'falcon_secret' with keys 'client_id' and 'client_secret'.
     """
     secret_name = "falcon_secret"
@@ -117,8 +117,59 @@ def delete_policy(firewall, policy_id):
     return response
 
 
+def update_linux_ssh_block_policy(firewall, policy_id, new_description=None, new_name=None):
+    """
+    Update a Linux SSH block policy by ID.
+    """
+    update_body = {
+        "resources": [
+            {
+                "id": policy_id,
+                "platform_name": "Linux"
+            }
+        ]
+    }
+    if new_description:
+        update_body["resources"][0]["description"] = new_description
+    if new_name:
+        update_body["resources"][0]["name"] = new_name
+
+    response = firewall.update_policies(body=update_body)
+    print(f"Updated Linux policy {policy_id}")
+    print(f"Status code: {response['status_code']}")
+    print(f"Response body: {response['body']}")
+    return response
+
+
+def update_windows_ssh_block_policy(firewall, policy_id, new_description=None, new_name=None):
+    """
+    Update a Windows SSH block policy by ID.
+    """
+    update_body = {
+        "resources": [
+            {
+                "id": policy_id,
+                "platform_name": "Windows"
+            }
+        ]
+    }
+    if new_description:
+        update_body["resources"][0]["description"] = new_description
+    if new_name:
+        update_body["resources"][0]["name"] = new_name
+
+    response = firewall.update_policies(body=update_body)
+    print(f"Updated Windows policy {policy_id}")
+    print(f"Status code: {response['status_code']}")
+    print(f"Response body: {response['body']}")
+    return response
+
+
 if __name__ == "__main__":
     client_id, client_secret = get_falcon_api_credentials_from_aws()
+    # I prefer this but its not best practie
+    #client_id = get_falcon_api_credentials_from_aws()[0]
+    #client_secret = get_falcon_api_credentials_from_aws()[1]
     auth = get_auth(client_id, client_secret)
     firewall = FirewallPolicies(auth)
 
@@ -130,6 +181,12 @@ if __name__ == "__main__":
 
     # Verify
     verify_policies(firewall)
+
+    # Update the description of a Linux policy
+    update_linux_ssh_block_policy(firewall, policy_id="YOUR_POLICY_ID", new_description="New description for Linux policy")
+
+    # Update the name of a Windows policy
+    update_windows_ssh_block_policy(firewall, policy_id="YOUR_POLICY_ID", new_name="New Windows SSH Policy Name")
 
     # Cleanup (uncomment to enable deletion)
     # delete_policy(firewall, new_id)
